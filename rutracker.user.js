@@ -97,6 +97,20 @@ function main_rutracker()
 {
     if(null == document.querySelector('table.forumline')) return;
 
+    var magnetLinks = document.querySelectorAll('.magnet-link');
+
+    if (magnetLinks.length) {
+        // detail page
+        common.loadJQuery();
+        [].forEach.call(magnetLinks, function(magnetLink) {
+            var href = $(magnetLink).attr('href'),
+                title = $('h1.maintitle').text();
+
+            $('<a href="https://embed.torrents-time.com/#source=' + encodeURIComponent(href) + '&title=' + encodeURIComponent(title) + '" target="_blank" style="display: block; background: #231F20; padding: 4px; margin: 3px 0" title="Смотреть через torrents-time"><img width="100%" src="https://torrents-time.com/css/images/header-logo.png"></a>').insertAfter($('.dl-link').parent('p'));
+        });
+        return;
+    }
+
     common.loadJQuery();
 
     if ($('table.forumline').attr('id') !== 'tor-tbl') {
