@@ -1,16 +1,16 @@
 // ==UserScript==
 // @name         Rutracker+Kinopoisk
-// @namespace    http://tampermonkey.net/
+// @namespace    https://github.com/nook-ru/rutracker-kinopoisk
 // @version      0.1
-// @description  try to take over the world!
-// @author       You
-// @include	https://kinopoisk.ru/level/1/film/*
-// @include	https://www.kinopoisk.ru/level/1/film/*
-// @include	https://www.kinopoisk.ru/film/*
-// @include	https://rutracker.org/forum/*
+// @description  Adds rutracker direct links to kinopoisk, and deduplicates search results on rutracker
+// @author
+// @include	http*://kinopoisk.ru/level/1/film/*
+// @include	http*://www.kinopoisk.ru/level/1/film/*
+// @include	http*://www.kinopoisk.ru/film/*
+// @include	http*://rutracker.org/forum/*
 // @connect rutracker.org
 // @connect www.kinopoisk.ru
-// @grant        GM_xmlhttpRequest
+// @grant   GM_xmlhttpRequest
 // ==/UserScript==
 /* jshint -W097 */
 "use strict";
@@ -42,8 +42,8 @@ var rt =
     search_url: 'https://rutracker.org/forum/tracker.php',
     torrents_base_url: 'https://rutracker.org/forum/',
 
-    header_selector: '#tor-tbl > thead > tr',
-    line_selector: '#tor-tbl > tbody > tr',
+    header_selector: 'table.forumline > thead > tr',
+    line_selector: 'table.forumline > tbody > tr.hl-tr',
     title_column_index: 3,
     seeds_column_index: 7,
     leechers_column_index: 8,
@@ -51,10 +51,14 @@ var rt =
 
     parse_info_string: function($info_row)
     {
-        var $info_el = $info_row.find('td:eq(' + this.title_column_index + ') a');
+        var $info_el = $info_row.find('td:eq(' + this.title_column_index + ')').find('a.tt-text,a.tLink');
         var seeds_count = $info_row.find('td b.seedmed').html();
         var leechers_count = $info_row.find('td.leechmed b').html();
-        var size = $info_row.find('td.tor-size a').html().replace(' ↓','');
+        var size = $info_row.find('td.tor-size a').html();
+
+        if (size) {
+            size = size.replace(' ↓','');
+        }
 
         if(!$info_el.html()) return;
         var matches = $info_el.html()
@@ -91,9 +95,14 @@ var kp =
 
 function main_rutracker()
 {
-    if(null == document.getElementById('tor-tbl')) return;
+    if(null == document.querySelector('table.forumline')) return;
 
     common.loadJQuery();
+
+    if ($('table.forumline').attr('id') !== 'tor-tbl') {
+        // forum topic list has different layout
+        rt.title_column_index = 1;
+    }
 
     var default_font_size = '12px';
 
@@ -180,11 +189,11 @@ function main_kinopoisk()
         });
         return is_torrent_found;
     }
-    
+
     $('<tr><td class="type">торренты</td><td class="torrents">Загружаю...</td></tr>').appendTo('table.info');
     var $torrents_container = $('table.info td.torrents');
-    var title_ru = $.trim($('#headerFilm > h1.moviename-big').html());
-    var title_full =  title_ru + ' / ' + $.trim($('#headerFilm > span').html());
+    var title_ru = $.trim($('#headerFilm > h1.moviename-big').text());
+    var title_full =  title_ru + ' / ' + $.trim($('#headerFilm > span').text());
     var full_search_url = rt.search_url+'?nm='+encodeURIComponent(title_full)+'&o=10&s=2';
 
     $.ajax({
